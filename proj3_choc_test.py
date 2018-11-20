@@ -1,4 +1,5 @@
 import unittest
+import sqlite3
 from proj3_choc import *
 
 class TestDatabase(unittest.TestCase):
