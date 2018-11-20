@@ -47,7 +47,8 @@ def populate_bars():
         for row in csvReader:
             if row[0] == "Company":
                 continue
-            cur.execute(statement, (row[0], row[1], row[2], row[3], row[4], row[5], row[6], row[7], row[8]))
+            cocoa = row[4][:-1]
+            cur.execute(statement, (row[0], row[1], row[2], row[3], cocoa, row[5], row[6], row[7], row[8]))
 
     conn.commit()
     conn.close()
@@ -65,7 +66,7 @@ def create_countries():
     cur.execute(statement)
     statement = '''CREATE TABLE 'Countries' 
     ('Id' INTEGER PRIMARY KEY AUTOINCREMENT, 'Alpha2' Text, 'Alpha3' TEXT, 'EnglishName' TEXT,
-        'Region' TEXT, 'Subregion' TEXT, 'Population' INT, 'Area' REAL, 'BroadBeanOriginId' INT, 'CompanyLocationId' INT);'''
+        'Region' TEXT, 'Subregion' TEXT, 'Population' INT, 'Area' REAL);'''
     cur.execute(statement)
 
     conn.commit()
@@ -122,7 +123,62 @@ populate_countries()
 update_tables_with_foreign_keys()
 # Part 2: Implement logic to process user commands
 def process_command(command):
-    return []
+    try:
+        conn = sqlite3.connect(DBNAME)
+        #From https://stackoverflow.com/questions/3425320/sqlite3-programmingerror-you-must-not-use-8-bit-bytestrings-unless-you-use-a-te
+        conn.text_factory = str
+        cur = conn.cursor()
+    except:
+        print("Could not connect to database.")
+    command = command.split()
+    if command[0] == "bars":
+        sortby = 'rating'
+        number = 10
+        sortby_query = " ORDER BY rating DESC LIMIT ?"
+        country_query = "None"
+        country = ""
+        for word in command:
+            if "sellcountry" in word:
+                country = word[-2:]
+                country_query = " WHERE c.Alpha2= ?"
+            elif "sourcecountry" in word:
+                country = word[-2:]
+                country_query = " WHERE z.Alpha2 = ?"
+            elif "sellregion" in word:
+                split_word = word.split('=')
+                country = split_word[1]
+                country_query = " WHERE c.Region = ? "
+            elif "sourceregion" in word:
+                split_word = word.split('=')
+                country = split_word[1]
+                country_query = " WHERE z.Region = ? "
+            elif word == "cocoa":
+                sortby = "CocoaPercent"
+            elif "bottom" in word:
+                split_word = word.split('=')
+                number = int(split_word[1])
+                sortby_query = " ORDER BY " + sortby + " LIMIT ?"
+            elif "top" in word:
+                split_word = word.split('=')
+                number = int(split_word[1])      
+        base_statement = '''SELECT Bars.SpecificBeanBarName, Bars.Company, c.EnglishName, Bars.Rating, Bars.CocoaPercent, z.EnglishName
+        FROM Bars
+        JOIN Countries as c ON Bars.CompanyLocationId = c.id
+        JOIN Countries as z ON Bars.BroadBeanOriginId = z.id'''
+        if country_query != "None":
+            statement = base_statement + country_query + sortby_query
+            cur.execute(statement,(country,number))
+        else:
+            statement = base_statement + sortby_query
+            cur.execute(statement,(number,))
+
+        lst = cur.fetchall()
+
+
+        
+    conn.close()
+
+    return lst
 
 
 def load_help_text():
