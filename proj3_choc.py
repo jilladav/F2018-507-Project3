@@ -193,7 +193,7 @@ def process_command(command):
                 country = split_word[1]
                 country_query = " WHERE Countries.Region = ? "
             elif word == "cocoa":
-                sortby = "AVG(CocoaPercent)"
+                sortby = "AVG(Bars.CocoaPercent)"
                 select_statement = '''SELECT Bars.Company, Countries.EnglishName, AVG(Bars.CocoaPercent) ''' 
             elif word == "bars_sold":
                 sortby = "COUNT(*)"
@@ -213,6 +213,44 @@ def process_command(command):
         else:
             statement = select_statement + join_statement + groupby_query + sortby_query
             cur.execute(statement,(number,))    
+        lst = cur.fetchall() 
+
+    if command[0] == "countries":
+        select_statement = '''SELECT Countries.EnglishName, Countries.Region, AVG(Bars.Rating)'''
+        join_statement = ''' FROM Bars JOIN Countries ON Bars.CompanyLocationId = Countries.Id'''
+        groupby_query = ''' GROUP BY Countries.EnglishName HAVING COUNT(*) > 4'''
+        sortby_query = ''' ORDER BY AVG(Bars.Rating) DESC LIMIT ?'''
+        country = ""
+        country_query = "None"
+        sortby = "AVG(Bars.Rating)"
+        number = 10
+        for word in command:
+            if word == "region":
+                split_word = word.split('=')
+                country = split_word[1]
+                country_query = " WHERE Countries.Region = ? "
+            elif word == "sources":
+                join_statement = ''' FROM Bars JOIN Countries ON Bars.BroadBeanOriginId = Countries.Id'''
+            elif word == "cocoa":
+                select_statement = '''SELECT Countries.EnglishName, Countries.Region, AVG(Bars.CocoaPercent)'''
+                sortby = "AVG(Bars.CocoaPercent)"
+            elif word == "bars_sold":
+                select_statement = '''SELECT Countries.EnglishName, Countries.Region, COUNT(*) '''
+                sortby = "COUNT(*)"
+            elif "bottom" in word:
+                split_word = word.split('=')
+                number = int(split_word[1])
+                sortby_query = " ORDER BY " + sortby + " LIMIT ?"
+            elif "top" in word:
+                split_word = word.split('=')
+                number = int(split_word[1])
+                sortby_query = " ORDER BY " + sortby + " DESC LIMIT ?" 
+            if country_query != "None":
+                statement = select_statement + join_statement + country_query + groupby_query + sortby_query
+                cur.execute(statement,(country,number))
+            else:
+                statement = select_statement + join_statement + groupby_query + sortby_query
+                cur.execute(statement,(number,))    
         lst = cur.fetchall() 
     
     conn.close()
