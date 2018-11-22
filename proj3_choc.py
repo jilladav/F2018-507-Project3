@@ -105,10 +105,14 @@ def update_tables_with_foreign_keys():
 
     for country in f:
         country_id = cur.execute("SELECT id FROM 'Countries' WHERE EnglishName=?", (country['name'],)).fetchone()[0]
-        statement = '''UPDATE Bars SET CompanyLocationId = ? WHERE CompanyLocationId LIKE ? '''
-        cur.execute(statement,(country_id,'%'+country['name']+'%'))
-        statement = '''UPDATE Bars SET BroadBeanOriginId = ? WHERE BroadBeanOriginId LIKE ? '''
-        cur.execute(statement,(country_id,'%'+country['name']+'%'))
+        #statement = '''UPDATE Bars SET CompanyLocationId = ? WHERE CompanyLocationId LIKE ? '''
+        #cur.execute(statement,(country_id,'%'+country['name']+'%'))
+        #statement = '''UPDATE Bars SET BroadBeanOriginId = ? WHERE BroadBeanOriginId LIKE ? '''
+        #cur.execute(statement,(country_id,'%'+country['name']+'%'))
+        statement = '''UPDATE Bars SET CompanyLocationId = ? WHERE CompanyLocationId = ?'''
+        cur.execute(statement,(country_id, country['name']))
+        statement = '''UPDATE Bars SET BroadBeanOriginId = ? WHERE BroadBeanOriginId = ? '''
+        cur.execute(statement,(country_id, country['name']))
 
 
     conn.commit()
@@ -245,12 +249,45 @@ def process_command(command):
                 split_word = word.split('=')
                 number = int(split_word[1])
                 sortby_query = " ORDER BY " + sortby + " DESC LIMIT ?" 
-            if country_query != "None":
-                statement = select_statement + join_statement + country_query + groupby_query + sortby_query
-                cur.execute(statement,(country,number))
-            else:
-                statement = select_statement + join_statement + groupby_query + sortby_query
-                cur.execute(statement,(number,))    
+        if country_query != "None":
+            statement = select_statement + join_statement + country_query + groupby_query + sortby_query
+            cur.execute(statement,(country,number))
+        else:
+            statement = select_statement + join_statement + groupby_query + sortby_query
+            cur.execute(statement,(number,))    
+        lst = cur.fetchall() 
+
+    if command[0] == "regions":
+        select_statement = '''SELECT Countries.Region, AVG(Bars.Rating)'''
+        join_statement = ''' FROM Bars JOIN Countries ON Bars.CompanyLocationId = Countries.Id'''
+        groupby_query = ''' GROUP BY Countries.Region HAVING COUNT(*) > 4'''
+        sortby_query = ''' ORDER BY AVG(Bars.Rating) DESC LIMIT ?'''
+        country = ""
+        country_query = "None"
+        sortby = "AVG(Bars.Rating)"
+        number = 10
+        for word in command:
+            if word == "sources":
+                join_statement = ''' FROM Bars JOIN Countries ON Bars.BroadBeanOriginId = Countries.Id'''
+            elif word == "cocoa":
+                select_statement = '''SELECT Countries.Region, AVG(Bars.CocoaPercent)'''
+                sortby = "AVG(Bars.CocoaPercent)"
+            elif word == "bars_sold":
+                select_statement = '''SELECT Countries.Region, COUNT(*) '''
+                sortby = "COUNT(*)"
+            elif "bottom" in word:
+                split_word = word.split('=')
+                number = int(split_word[1])
+                sortby_query = " ORDER BY " + sortby + " LIMIT ?"
+            elif "top" in word:
+                split_word = word.split('=')
+                number = int(split_word[1])
+                sortby_query = " ORDER BY " + sortby + " DESC LIMIT ?" 
+
+        statement = select_statement + join_statement + groupby_query + sortby_query
+        print(statement)
+        cur.execute(statement,(number,))    
+        
         lst = cur.fetchall() 
     
     conn.close()
