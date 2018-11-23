@@ -174,7 +174,7 @@ def process_command(command):
             elif word == "bars":
                 continue
             else:
-                print("Bad command: " + command)
+                print("Command not recognized: " + command)
                 return
 
         if not bottom:
@@ -231,7 +231,7 @@ def process_command(command):
             elif word == "companies":
                 continue
             else:
-                print("Bad command: " + command)
+                print("Command not recognized: " + command)
                 return
 
         if not bottom:
@@ -284,7 +284,7 @@ def process_command(command):
             elif word == "countries":
                 continue
             else:
-                print("Bad command: " + command)
+                print("Command not recognized: " + command)
                 return
 
         if not bottom:
@@ -333,7 +333,7 @@ def process_command(command):
             elif word == "regions":
                 continue
             else:
-                print("Bad command: " + command)
+                print("Command not recognized: " + command)
                 return
 
         if not bottom:
@@ -345,7 +345,7 @@ def process_command(command):
         lst = cur.fetchall() 
     
     else:
-        print("Bad command: " + command)
+        print("Command not recognized: " + command)
         return
     
     conn.close()
@@ -385,7 +385,12 @@ def interactive_prompt():
                                     print(word)
                                 else:
                                     print(word, end = " ")
-                            word = str(word) + " "
+                            else:
+                                word = str(word) + " "
+                                if(end):
+                                    print(word)
+                                else:
+                                    print(word, end = " ")
                         elif type(word) == str:
                             #From https://stackoverflow.com/questions/2872512/python-truncate-a-long-string
                             word = (word[:12] + '...') if len(word) > 12 else word
