@@ -135,14 +135,15 @@ def process_command(command):
     except:
         print("Could not connect to database.")
     lst = []
-    command = command.split()
-    if command[0] == "bars":
+    command_split = command.split()
+    if command_split[0] == "bars":
         sortby = 'rating'
         number = 10
         sortby_query = " ORDER BY rating DESC LIMIT ?"
         country_query = "None"
         country = ""
-        for word in command:
+        bottom = False
+        for word in command_split:
             if "sellcountry" in word:
                 country = word[-2:]
                 country_query = " WHERE c.Alpha2= ?"
@@ -163,10 +164,22 @@ def process_command(command):
                 split_word = word.split('=')
                 number = int(split_word[1])
                 sortby_query = " ORDER BY " + sortby + " LIMIT ?"
+                bottom = True
             elif "top" in word:
                 split_word = word.split('=')
                 number = int(split_word[1])  
-                sortby_query = " ORDER BY " + sortby + " DESC LIMIT ?"    
+                sortby_query = " ORDER BY " + sortby + " DESC LIMIT ?"
+            elif word == "ratings":
+                continue 
+            elif word == "bars":
+                continue
+            else:
+                print("Bad command: " + command)
+                return
+
+        if not bottom:
+            sortby_query = " ORDER BY " + sortby + " DESC LIMIT ?"
+
         base_statement = '''SELECT Bars.SpecificBeanBarName, Bars.Company, c.EnglishName, Bars.Rating, Bars.CocoaPercent, z.EnglishName
         FROM Bars
         JOIN Countries as c ON Bars.CompanyLocationId = c.id
@@ -179,7 +192,8 @@ def process_command(command):
             cur.execute(statement,(number,))
 
         lst = cur.fetchall()
-    if command[0] == "companies":
+
+    elif command_split[0] == "companies":
         select_statement = '''SELECT Bars.Company, Countries.EnglishName, AVG(Bars.Rating) '''
         join_statement = '''FROM Bars JOIN Countries ON Countries.Id = Bars.CompanyLocationId'''
         number = 10
@@ -188,7 +202,8 @@ def process_command(command):
         groupby_query = ''' GROUP BY Bars.Company HAVING COUNT(*) > 4'''
         country = ""
         country_query = "None"
-        for word in command:
+        bottom = False
+        for word in command_split:
             if "country" in word:
                 country = word[-2:]
                 country_query = " WHERE Countries.Alpha2= ? "
@@ -206,10 +221,21 @@ def process_command(command):
                 split_word = word.split('=')
                 number = int(split_word[1])
                 sortby_query = " ORDER BY " + sortby + " LIMIT ?"
+                bottom = True
             elif "top" in word:
                 split_word = word.split('=')
                 number = int(split_word[1])
                 sortby_query = " ORDER BY " + sortby + " DESC LIMIT ?"    
+            elif word == "ratings":
+                continue
+            elif word == "companies":
+                continue
+            else:
+                print("Bad command: " + command)
+                return
+
+        if not bottom:
+            sortby_query = " ORDER BY " + sortby + " DESC LIMIT ?"
 
         if country_query != "None":
             statement = select_statement + join_statement + country_query + groupby_query + sortby_query
@@ -219,7 +245,7 @@ def process_command(command):
             cur.execute(statement,(number,))    
         lst = cur.fetchall() 
 
-    if command[0] == "countries":
+    elif command_split[0] == "countries":
         select_statement = '''SELECT Countries.EnglishName, Countries.Region, AVG(Bars.Rating)'''
         join_statement = ''' FROM Bars JOIN Countries ON Bars.CompanyLocationId = Countries.Id'''
         groupby_query = ''' GROUP BY Countries.EnglishName HAVING COUNT(*) > 4'''
@@ -228,7 +254,8 @@ def process_command(command):
         country_query = "None"
         sortby = "AVG(Bars.Rating)"
         number = 10
-        for word in command:
+        bottom = False
+        for word in command_split:
             if word == "region":
                 split_word = word.split('=')
                 country = split_word[1]
@@ -245,10 +272,24 @@ def process_command(command):
                 split_word = word.split('=')
                 number = int(split_word[1])
                 sortby_query = " ORDER BY " + sortby + " LIMIT ?"
+                bottom = True
             elif "top" in word:
                 split_word = word.split('=')
                 number = int(split_word[1])
                 sortby_query = " ORDER BY " + sortby + " DESC LIMIT ?" 
+            elif word == "ratings":
+                continue
+            elif word == "sellers":
+                continue
+            elif word == "countries":
+                continue
+            else:
+                print("Bad command: " + command)
+                return
+
+        if not bottom:
+            sortby_query = " ORDER BY " + sortby + " DESC LIMIT ?"
+
         if country_query != "None":
             statement = select_statement + join_statement + country_query + groupby_query + sortby_query
             cur.execute(statement,(country,number))
@@ -257,7 +298,7 @@ def process_command(command):
             cur.execute(statement,(number,))    
         lst = cur.fetchall() 
 
-    if command[0] == "regions":
+    elif command_split[0] == "regions":
         select_statement = '''SELECT Countries.Region, AVG(Bars.Rating)'''
         join_statement = ''' FROM Bars JOIN Countries ON Bars.CompanyLocationId = Countries.Id'''
         groupby_query = ''' GROUP BY Countries.Region HAVING COUNT(*) > 4'''
@@ -266,7 +307,8 @@ def process_command(command):
         country_query = "None"
         sortby = "AVG(Bars.Rating)"
         number = 10
-        for word in command:
+        bottom = False
+        for word in command_split:
             if word == "sources":
                 join_statement = ''' FROM Bars JOIN Countries ON Bars.BroadBeanOriginId = Countries.Id'''
             elif word == "cocoa":
@@ -279,16 +321,32 @@ def process_command(command):
                 split_word = word.split('=')
                 number = int(split_word[1])
                 sortby_query = " ORDER BY " + sortby + " LIMIT ?"
+                bottom = True
             elif "top" in word:
                 split_word = word.split('=')
                 number = int(split_word[1])
                 sortby_query = " ORDER BY " + sortby + " DESC LIMIT ?" 
+            elif word == "ratings":
+                continue
+            elif word == "sellers":
+                continue
+            elif word == "regions":
+                continue
+            else:
+                print("Bad command: " + command)
+                return
+
+        if not bottom:
+            sortby_query = " ORDER BY " + sortby + " DESC LIMIT ?"
 
         statement = select_statement + join_statement + groupby_query + sortby_query
-        print(statement)
         cur.execute(statement,(number,))    
         
         lst = cur.fetchall() 
+    
+    else:
+        print("Bad command: " + command)
+        return
     
     conn.close()
 
@@ -303,9 +361,43 @@ def load_help_text():
 def interactive_prompt():
     help_text = load_help_text()
     response = ''
+    end = False
     while response != 'exit':
         response = input('Enter a command: ')
-
+        if response != 'exit':
+            result = process_command(response)
+            if type(result) == list:
+                tup_len = len(result[0])
+                for tup in result:
+                    x = 1
+                    for word in tup:  
+                        if x == tup_len:
+                            end = True
+                        else:
+                            end = False
+                        if type(word) == float:
+                            word = round(word, 1)
+                            if word >= 42.0:
+                                word = str(word)
+                                word = word.split('.')
+                                word = word[0] + "% "
+                                if(end):
+                                    print(word)
+                                else:
+                                    print(word, end = " ")
+                            word = str(word) + " "
+                        elif type(word) == str:
+                            #From https://stackoverflow.com/questions/2872512/python-truncate-a-long-string
+                            word = (word[:12] + '...') if len(word) > 12 else word
+                            if(end):
+                                print('{0: <15}'.format(word))
+                            else:    
+                                print('{0: <15}'.format(word), end = " ")
+                        elif(end):
+                            print(word)
+                        else:
+                            print(word, end = " ")
+                        x += 1
         if response == 'help':
             print(help_text)
             continue
