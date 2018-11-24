@@ -18,18 +18,22 @@ def create_bars():
         cur = conn.cursor()
     except:
         print("Could not connect to database.")
-    statement = '''
-        DROP TABLE IF EXISTS 'Bars';
-    '''
-    cur.execute(statement)
-    statement = '''CREATE TABLE 'Bars' 
-    ('Id' INTEGER PRIMARY KEY AUTOINCREMENT, 'Company' Text, 'SpecificBeanBarName' TEXT, 'REF' TEXT,
-        'ReviewDate' TEXT, 'CocoaPercent' REAL, 'CompanyLocationId' INT, 'Rating' REAL, 'BeanType' TEXT,
-        'BroadBeanOriginId' INT);'''
-    cur.execute(statement)
 
-    conn.commit()
-    conn.close()
+    try:
+        statement = '''
+            DROP TABLE IF EXISTS 'Bars';
+        '''
+        cur.execute(statement)
+        statement = '''CREATE TABLE 'Bars' 
+        ('Id' INTEGER PRIMARY KEY AUTOINCREMENT, 'Company' Text, 'SpecificBeanBarName' TEXT, 'REF' TEXT,
+            'ReviewDate' TEXT, 'CocoaPercent' REAL, 'CompanyLocationId' INT, 'Rating' REAL, 'BeanType' TEXT,
+            'BroadBeanOriginId' INT);'''
+        cur.execute(statement)
+
+        conn.commit()
+        conn.close()
+    except:
+        print("Could not create table Bars.")
 
 def populate_bars():
     try:
@@ -40,18 +44,21 @@ def populate_bars():
     except:
         print("Could not connect to database.")
 
-    with open(BARSCSV) as f:
-        csvReader = csv.reader(f)
-        statement = '''INSERT INTO 'Bars' (Company, SpecificBeanBarName, REF, ReviewDate, CocoaPercent,
-            CompanyLocationId, Rating, BeanType, BroadBeanOriginId) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'''
-        for row in csvReader:
-            if row[0] == "Company":
-                continue
-            cocoa = row[4][:-1]
-            cur.execute(statement, (row[0], row[1], row[2], row[3], cocoa, row[5], row[6], row[7], row[8]))
+    try:
+        with open(BARSCSV) as f:
+            csvReader = csv.reader(f)
+            statement = '''INSERT INTO 'Bars' (Company, SpecificBeanBarName, REF, ReviewDate, CocoaPercent,
+                CompanyLocationId, Rating, BeanType, BroadBeanOriginId) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'''
+            for row in csvReader:
+                if row[0] == "Company":
+                    continue
+                cocoa = row[4][:-1]
+                cur.execute(statement, (row[0], row[1], row[2], row[3], cocoa, row[5], row[6], row[7], row[8]))
 
-    conn.commit()
-    conn.close()
+        conn.commit()
+        conn.close()
+    except:
+        print("Could not populate table Bars.")
 
 def create_countries():
     try:
@@ -59,18 +66,20 @@ def create_countries():
         cur = conn.cursor()
     except:
         print("Could not connect to database.")
+    try:
+        statement = '''
+            DROP TABLE IF EXISTS 'Countries';
+        '''
+        cur.execute(statement)
+        statement = '''CREATE TABLE 'Countries' 
+        ('Id' INTEGER PRIMARY KEY AUTOINCREMENT, 'Alpha2' Text, 'Alpha3' TEXT, 'EnglishName' TEXT,
+            'Region' TEXT, 'Subregion' TEXT, 'Population' INT, 'Area' REAL);'''
+        cur.execute(statement)
 
-    statement = '''
-        DROP TABLE IF EXISTS 'Countries';
-    '''
-    cur.execute(statement)
-    statement = '''CREATE TABLE 'Countries' 
-    ('Id' INTEGER PRIMARY KEY AUTOINCREMENT, 'Alpha2' Text, 'Alpha3' TEXT, 'EnglishName' TEXT,
-        'Region' TEXT, 'Subregion' TEXT, 'Population' INT, 'Area' REAL);'''
-    cur.execute(statement)
-
-    conn.commit()
-    conn.close()  
+        conn.commit()
+        conn.close()
+    except:
+        print("Could not create table Countries.")  
 
 def populate_countries():
     try:
@@ -81,15 +90,20 @@ def populate_countries():
     except:
         print("Could not connect to database.")
 
-    f = json.load(open('countries.json'))
-    statement = '''INSERT INTO 'Countries' (Alpha2, Alpha3, EnglishName, Region, Subregion,
-            Population, Area) VALUES (?, ?, ?, ?, ?, ?, ?)'''
-    
-    for country in f:
-        cur.execute(statement, (country['alpha2Code'], country['alpha3Code'], country['name'], country['region'], country['subregion'], country['population'], country['area']))
+    try:
+        f = json.load(open('countries.json'))
+        statement = '''INSERT INTO 'Countries' (Alpha2, Alpha3, EnglishName, Region, Subregion,
+                Population, Area) VALUES (?, ?, ?, ?, ?, ?, ?)'''
+        
+        for country in f:
+            cur.execute(statement, (country['alpha2Code'], country['alpha3Code'], country['name'], country['region'], country['subregion'], country['population'], country['area']))
 
-    conn.commit()
-    conn.close()
+        cur.execute(statement, ('UN', 'UNK', 'Unknown', 'Unknown', '', 0, 0)) 
+        
+        conn.commit()
+        conn.close()
+    except:
+        print("Could not populate table Countries.")
 
 def update_tables_with_foreign_keys():
     try:
@@ -113,6 +127,8 @@ def update_tables_with_foreign_keys():
         cur.execute(statement,(country_id, country['name']))
         statement = '''UPDATE Bars SET BroadBeanOriginId = ? WHERE BroadBeanOriginId = ? '''
         cur.execute(statement,(country_id, country['name']))
+        statement = '''UPDATE Bars SET BroadBeanOriginId = ? WHERE BroadBeanOriginId = ? '''
+        cur.execute(statement,(251, "Unknown"))
 
 
     conn.commit()
@@ -146,10 +162,10 @@ def process_command(command):
         for word in command_split:
             if "sellcountry" in word:
                 country = word[-2:]
-                country_query = " WHERE c.Alpha2= ?"
+                country_query = " WHERE c.Alpha2= ? AND c.EnglishName != \"Unknown\""
             elif "sourcecountry" in word:
                 country = word[-2:]
-                country_query = " WHERE z.Alpha2 = ?"
+                country_query = " WHERE z.Alpha2 = ? AND z.EnglishName != \"Unknown\""
             elif "sellregion" in word:
                 split_word = word.split('=')
                 country = split_word[1]
@@ -206,11 +222,11 @@ def process_command(command):
         for word in command_split:
             if "country" in word:
                 country = word[-2:]
-                country_query = " WHERE Countries.Alpha2= ? "
+                country_query = " WHERE Countries.Alpha2= ? AND Countries.EnglishName != \"Unknown\""
             elif "region" in word:
                 split_word = word.split('=')
                 country = split_word[1]
-                country_query = " WHERE Countries.Region = ? "
+                country_query = " WHERE Countries.Region = ? AND Countries.EnglishName != \"Unknown\""
             elif word == "cocoa":
                 sortby = "AVG(Bars.CocoaPercent)"
                 select_statement = '''SELECT Bars.Company, Countries.EnglishName, AVG(Bars.CocoaPercent) ''' 
@@ -247,7 +263,7 @@ def process_command(command):
 
     elif command_split[0] == "countries":
         select_statement = '''SELECT Countries.EnglishName, Countries.Region, AVG(Bars.Rating)'''
-        join_statement = ''' FROM Bars JOIN Countries ON Bars.CompanyLocationId = Countries.Id'''
+        join_statement = ''' FROM Bars JOIN Countries ON Bars.CompanyLocationId = Countries.Id WHERE Countries.EnglishName != "Unknown"'''
         groupby_query = ''' GROUP BY Countries.EnglishName HAVING COUNT(*) > 4'''
         sortby_query = ''' ORDER BY AVG(Bars.Rating) DESC LIMIT ?'''
         country = ""
@@ -256,17 +272,17 @@ def process_command(command):
         number = 10
         bottom = False
         for word in command_split:
-            if word == "region":
+            if "region" in word:
                 split_word = word.split('=')
                 country = split_word[1]
-                country_query = " WHERE Countries.Region = ? "
+                country_query = " AND Countries.Region = ?"
             elif word == "sources":
-                join_statement = ''' FROM Bars JOIN Countries ON Bars.BroadBeanOriginId = Countries.Id'''
+                join_statement = ''' FROM Bars JOIN Countries ON Bars.BroadBeanOriginId = Countries.Id WHERE Countries.EnglishName != "Unknown"'''
             elif word == "cocoa":
                 select_statement = '''SELECT Countries.EnglishName, Countries.Region, AVG(Bars.CocoaPercent)'''
                 sortby = "AVG(Bars.CocoaPercent)"
             elif word == "bars_sold":
-                select_statement = '''SELECT Countries.EnglishName, Countries.Region, COUNT(*) '''
+                select_statement = '''SELECT Countries.EnglishName, Countries.Region, COUNT(SpecificBeanBarName) '''
                 sortby = "COUNT(*)"
             elif "bottom" in word:
                 split_word = word.split('=')
@@ -300,7 +316,7 @@ def process_command(command):
 
     elif command_split[0] == "regions":
         select_statement = '''SELECT Countries.Region, AVG(Bars.Rating)'''
-        join_statement = ''' FROM Bars JOIN Countries ON Bars.CompanyLocationId = Countries.Id'''
+        join_statement = ''' FROM Bars JOIN Countries ON Bars.CompanyLocationId = Countries.Id WHERE Countries.EnglishName != \"Unknown\"'''
         groupby_query = ''' GROUP BY Countries.Region HAVING COUNT(*) > 4'''
         sortby_query = ''' ORDER BY AVG(Bars.Rating) DESC LIMIT ?'''
         country = ""
@@ -310,7 +326,7 @@ def process_command(command):
         bottom = False
         for word in command_split:
             if word == "sources":
-                join_statement = ''' FROM Bars JOIN Countries ON Bars.BroadBeanOriginId = Countries.Id'''
+                join_statement = ''' FROM Bars JOIN Countries ON Bars.BroadBeanOriginId = Countries.Id WHERE Countries.EnglishName != \"Unknown\"'''
             elif word == "cocoa":
                 select_statement = '''SELECT Countries.Region, AVG(Bars.CocoaPercent)'''
                 sortby = "AVG(Bars.CocoaPercent)"
