@@ -52,7 +52,7 @@ def populate_bars():
             for row in csvReader:
                 if row[0] == "Company":
                     continue
-                cocoa = row[4][:-1]
+                cocoa = ((float(row[4][:-1])) / 100)
                 cur.execute(statement, (row[0], row[1], row[2], row[3], cocoa, row[5], row[6], row[7], row[8]))
 
         conn.commit()
@@ -393,7 +393,8 @@ def interactive_prompt():
                             end = False
                         if type(word) == float:
                             word = round(word, 1)
-                            if word >= 42.0:
+                            if word <= 1 and x != 4:
+                                word = word * 100
                                 word = str(word)
                                 word = word.split('.')
                                 word = word[0] + "% "
