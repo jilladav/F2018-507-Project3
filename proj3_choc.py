@@ -381,7 +381,11 @@ def interactive_prompt():
     while response != 'exit':
         response = input('Enter a command: ')
         if response != 'exit':
-            result = process_command(response)
+            try:
+                result = process_command(response)
+            except:
+                print("Unable to process command.")
+                continue
             if type(result) == list:
                 tup_len = len(result[0])
                 for tup in result:
